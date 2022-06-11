@@ -1,6 +1,6 @@
 import { Tabs, Button, notification, FormInstance } from 'antd';
 import 'antd/dist/antd.css'
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'antd/lib/form/Form';
 import styles from './main.module.css'
 import { Element, Skill, Character, ValidationError } from '../../types';
@@ -45,13 +45,13 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
   const showItems = (evt: any, items: Character[]): void => {
     setIsVisibleItems(!isVisibleItems);
     setActiveItems(items)
-    Array.from(evt.target.children).map((item: any) => {
-      if (item.className === `${styles.hidden}`) {
-        item.className = styles.item
+    if (evt.target.children.length !== 0) {
+      if (evt.target.children[0].className === `${styles.hidden}`) {
+        evt.target.children[0].className = styles.item
       } else {
-        item.className = styles.hidden
+        evt.target.children[0].className = styles.hidden
       }
-    })
+    }
   }
 
 
@@ -94,7 +94,7 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
     checkValidateForm(formSaveFile, saveFile)
   };
 
-  const editFile = (): void => {
+  const editFile = (evt: any): void => {
     const newData = formEditFile.getFieldsValue();
     const index = activeItems.indexOf(activeItem)
     activeItems.splice(index, 1, newData);
@@ -126,17 +126,18 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
         <div>
           {file && file.data.map((item: Element, i: number) => {
             return <div key={i}>
-              <div className={styles.elementName} onClick={(evt: any) => showItems(evt, item.characters)}>{item.position}{item.characters.map((item: any, i: number) => {
+              <div className={styles.elementName} onClick={(evt: any) => showItems(evt, item.characters)}>{item.position}<div className={styles.hidden}>{item.characters.map((item: any, i: number) => {
                 keys = Object.keys(activeItem)
                 values = Object.values(activeItem)
-                return <div key={item["имя"]} className={item["имя"] === activeItem["имя"] ? styles.item : styles.hidden} style={item["имя"] === activeItem["имя"] ? { 'borderBottom': '1px solid black' } : { 'border': 'none' }} onClick={() => showTableItem(item)}>{item["имя"]}</div>
-              })}</div></div>
+                return <div key={item["имя"]} style={item["имя"] === activeItem["имя"] ? { 'borderBottom': '1px solid black' } : { 'border': 'none' }} onClick={() => showTableItem(item)}>{item["имя"]}</div>
+              })}</div></div></div>
           })}
         </div>
         {activeItems && <div className={styles.tabs}><Tabs className={styles.tabs} defaultActiveKey="0">
           {keys.map((tab: string, i: number) => {
             return <TabPane className={styles.tab} tab={tab !== "id" && tab} key={i}>
               {Array.isArray(values[i]) ? values[i].map((value: Skill, key: number) => {
+
                 return <div className={styles.wrap} key={key}>
                   <div className={styles.name}>{value.name}</div>
                   <div className={styles.about}>{value.about}</div>

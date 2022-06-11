@@ -1,8 +1,6 @@
 import React from 'react';
-import { Form, Input, Modal, Button, FormInstance } from 'antd';
-
+import { Form, Modal, Button, FormInstance } from 'antd';
 import styles from './modalWithForm.module.css';
-// import { MaskedInput } from 'antd-mask-input';
 
 interface ModalWithFormProps {
   isVisible: boolean;
