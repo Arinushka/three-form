@@ -1,6 +1,6 @@
 import { Tabs, Button, notification, FormInstance } from 'antd';
 import 'antd/dist/antd.css'
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'antd/lib/form/Form';
 import styles from './main.module.css'
 import { Element, Skill, Character, ValidationError } from '../../types';
@@ -25,7 +25,7 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
   const [isVisibleItems, setIsVisibleItems] = useState<boolean>(false);
   const [isVisibleModalSaveFile, setIsVisibleModalSaveFile] = useState<boolean>(false);
   const [isVisibleModalEditFile, setIsVisibleModalEditFile] = useState<boolean>(false);
-  const [activeItem, setActiveItem] = useState<any>({});
+  const [activeItem, setActiveItem] = useState<Character>({ имя: '', позиция: '', роль: '', "тип атаки": '', изображение: '', способности: [] });
   const [activeItems, setActiveItems] = useState<Character[]>([]);
 
   const dispatch = useDispatch();
@@ -34,7 +34,7 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
   const [formEditFile] = useForm();
 
   let keys: string[] = []
-  let values: any;
+  let values: (Skill[] | string)[];
 
 
   const closeModal = (): void => {
@@ -60,16 +60,18 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
   }
 
 
-  const getFile = (event: any): void => {
+  const getFile = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const reader: any = new FileReader();
-    reader.readAsText(event.target.files[0]);
-    reader.onload = () => {
-      dispatch(loaded(JSON.parse(reader.result)));
-    };
+    if (event.target.files) {
+      reader.readAsText(event.target.files[0]);
+      reader.onload = () => {
+        dispatch(loaded(JSON.parse(reader.result)));
+      };
+    }
   }
 
   const saveFile = (): void => {
-    const blob: Blob = new Blob([JSON.stringify(file)], { type: "application/json" });
+    const blob: Blob = new Blob([JSON.stringify(file.data)], { type: "application/json" });
     const link = document.createElement("a")
     link.setAttribute("href", URL.createObjectURL(blob))
     link.setAttribute("download", `${formSaveFile.getFieldsValue().name}`)
@@ -79,7 +81,7 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
     formSaveFile.resetFields();
   }
 
-  const checkValidateForm = (form: FormInstance, successCallback: any): void => {
+  const checkValidateForm = (form: FormInstance, successCallback: () => void): void => {
     form.validateFields().then(successCallback, error => failureCallback(error))
   }
 
@@ -94,7 +96,7 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
     checkValidateForm(formSaveFile, saveFile)
   };
 
-  const editFile = (evt: any): void => {
+  const editFile = (): void => {
     const newData = formEditFile.getFieldsValue();
     const index = activeItems.indexOf(activeItem)
     activeItems.splice(index, 1, newData);
@@ -126,16 +128,17 @@ const Main: React.FC<MainProps> = (props): JSX.Element => {
         <div>
           {file && file.data.map((item: Element, i: number) => {
             return <div key={i}>
-              <div className={styles.elementName} onClick={(evt: any) => showItems(evt, item.characters)}>{item.position}<div className={styles.hidden}>{item.characters.map((item: any, i: number) => {
+              <div className={styles.elementName} onClick={(evt) => showItems(evt, item.characters)}>{item.position}<div className={styles.hidden}>{item.characters.map((item: Character, i: number) => {
                 keys = Object.keys(activeItem)
                 values = Object.values(activeItem)
                 return <div key={item["имя"]} style={item["имя"] === activeItem["имя"] ? { 'borderBottom': '1px solid black' } : { 'border': 'none' }} onClick={() => showTableItem(item)}>{item["имя"]}</div>
               })}</div></div></div>
           })}
         </div>
-        {activeItems && <div className={styles.tabs}><Tabs className={styles.tabs} defaultActiveKey="0">
+        {activeItem["имя"] && <div className={styles.tabs}><Tabs className={styles.tabs} defaultActiveKey="0">
           {keys.map((tab: string, i: number) => {
             return <TabPane className={styles.tab} tab={tab !== "id" && tab} key={i}>
+              {/* @ts-ignore */}
               {Array.isArray(values[i]) ? values[i].map((value: Skill, key: number) => {
 
                 return <div className={styles.wrap} key={key}>

@@ -8,7 +8,7 @@ interface ModalWithFormProps {
   handleSubmit: () => void;
   title: string;
   form: FormInstance;
-  children: any;
+  children: JSX.Element | JSX.Element[];
 }
 
 const ModalWithForm: React.FC<ModalWithFormProps> = (props): JSX.Element => {
