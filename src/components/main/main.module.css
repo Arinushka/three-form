@@ -2,9 +2,12 @@
   display: flex;
   margin: 50px;
   background-color: gray;
-  width: 80%;
-  height: 100%;
+  width: 70%;
+  height: 70%;
+  padding: 15px;
 }
+
+.file {}
 
 .wrapElement {
   display: flex;
@@ -16,13 +19,23 @@
   text-align: left;
   min-width: 50px;
   margin-bottom: 20px;
-  /* border-bottom: 1px solid black; */
 }
 
 .tab:global(.ant-tabs-tabpane) {
-  overflow: scroll;
+  overflow-y: scroll;
   width: 600px;
-  height: 200px;
+  height: 300px;
+  padding-left: 20px;
+  text-align: left;
+}
+
+.tabs:global(.ant-tabs) {
+  margin-left: 20px;
+
+}
+
+.tabs :global(.ant-tabs-tab) {
+  padding: 0;
 }
 
 .wrap {
@@ -56,3 +69,11 @@
   border-bottom: 1px solid black;
 }
 
+.wrapButtons {
+  display: flex;
+  width: 70%;
+}
+
+.buttonEdit {
+  margin-right: 15px;
+}

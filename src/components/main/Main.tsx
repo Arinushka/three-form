@@ -1,23 +1,48 @@
-import { Tabs } from 'antd';
+import { Tabs, Button, notification, FormInstance } from 'antd';
 import 'antd/dist/antd.css'
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useForm } from 'antd/lib/form/Form';
 import styles from './main.module.css'
-import { characters } from '../../data';
-import { Element, Skill, Character } from '../../types';
+import { Element, Skill, Character, ValidationError } from '../../types';
+import { connect, useDispatch } from 'react-redux';
+import { loaded } from '../../store/reducers/file/actions';
+import { AppState } from '../../store/reducers';
+import { ValidateErrorEntity } from 'rc-field-form/lib/interface';
+import ModalEditFile from '../modalEditFile/ModalEditFile';
+import ModalSaveFile from '../modalSaveFile/ModalSaveFile';
 
 
-const Main: React.FC = (): JSX.Element => {
+interface MainProps {
+  file: { data: Element[] }
+}
+
+
+const Main: React.FC<MainProps> = (props): JSX.Element => {
+
+  const { TabPane } = Tabs;
+  const { file } = props;
 
   const [isVisibleItems, setIsVisibleItems] = useState<boolean>(false);
-  // const [isVisibleTableItem, setIsVisibleTableItem] = useState<boolean>(false);
+  const [isVisibleModalSaveFile, setIsVisibleModalSaveFile] = useState<boolean>(false);
+  const [isVisibleModalEditFile, setIsVisibleModalEditFile] = useState<boolean>(false);
   const [activeItem, setActiveItem] = useState<any>({});
-  const [activeItems, setActiveItems] = useState<any>([]);
+  const [activeItems, setActiveItems] = useState<Character[]>([]);
+
+  const dispatch = useDispatch();
+
+  const [formSaveFile] = useForm();
+  const [formEditFile] = useForm();
 
   let keys: string[] = []
   let values: any;
 
 
-  const showItems = (evt: any, items: any) => {
+  const closeModal = (): void => {
+    setIsVisibleModalSaveFile(false)
+    setIsVisibleModalEditFile(false)
+  }
+
+  const showItems = (evt: any, items: Character[]): void => {
     setIsVisibleItems(!isVisibleItems);
     setActiveItems(items)
     Array.from(evt.target.children).map((item: any) => {
@@ -30,47 +55,88 @@ const Main: React.FC = (): JSX.Element => {
   }
 
 
-
-
-  useEffect(() => {
-    if (activeItem.active) {
-      activeItems.forEach((item: any) => {
-        if (item["имя"] !== activeItem["имя"]) {
-          // item.active = false
-        }else{
-          item.active = false
-        }
-      })
-    }
-  }, [ activeItem])
-
-
-
-  const showTableItem = (item: any, evt: any) => {
-    item.active = true
-    // setIsVisibleTableItem(true)
+  const showTableItem = (item: Character): void => {
     setActiveItem(item)
   }
-  const { TabPane } = Tabs;
+
+
+  const getFile = (event: any): void => {
+    const reader: any = new FileReader();
+    reader.readAsText(event.target.files[0]);
+    reader.onload = () => {
+      dispatch(loaded(JSON.parse(reader.result)));
+    };
+  }
+
+  const saveFile = (): void => {
+    const blob: Blob = new Blob([JSON.stringify(file)], { type: "application/json" });
+    const link = document.createElement("a")
+    link.setAttribute("href", URL.createObjectURL(blob))
+    link.setAttribute("download", `${formSaveFile.getFieldsValue().name}`)
+    link.click()
+    link.remove()
+    setIsVisibleModalSaveFile(false);
+    formSaveFile.resetFields();
+  }
+
+  const checkValidateForm = (form: FormInstance, successCallback: any): void => {
+    form.validateFields().then(successCallback, error => failureCallback(error))
+  }
+
+  const failureCallback = (error: ValidateErrorEntity): void => {
+    notification.error({
+      description: error.errorFields.map((error: ValidationError) => error.errors),
+      message: "Заполните все обязательные поля формы"
+    })
+  }
+
+  const handleSaveFile = (): void => {
+    checkValidateForm(formSaveFile, saveFile)
+  };
+
+  const editFile = (): void => {
+    const newData = formEditFile.getFieldsValue();
+    const index = activeItems.indexOf(activeItem)
+    activeItems.splice(index, 1, newData);
+    setActiveItem(newData)
+    dispatch(loaded(file.data))
+    setIsVisibleModalEditFile(false);
+  }
+
+
+  const handleEditFile = (): void => {
+    checkValidateForm(formEditFile, editFile)
+  }
+
+
+  const openEditModal = (): void => {
+    formEditFile.setFieldsValue(activeItem)
+    setIsVisibleModalEditFile(true)
+  }
 
   return (
-    <div className={styles.container}>
-      <div>
-        {characters.map((item: Element, i: number) => {
-          return <div key={i}>
-            <div className={styles.elementName} onClick={(evt: any) => showItems(evt, item.characters)}>{item.position}{item.characters.map((item: any) => {
-              keys = Object.keys(activeItem)
-              values = Object.values(activeItem)
-
-              return <div key={item["имя"]} className={ styles.hidden} style={item.active ? {'border': '1px solid red'}:{'border': 'none'}} onClick={(evt) => showTableItem(item, evt)}>{item["имя"]}</div>
-
-            })}</div></div>
-        })}
+    <>
+      <div className={styles.wrapButtons}>
+        <input className={styles.file} type="file" accept="application/json" onChange={getFile}></input>
+        {file.data.length > 0 && <> {activeItem["имя"] && <Button className={styles.buttonEdit} onClick={openEditModal}>Редактировать</Button>}
+          <Button type="default" onClick={() => setIsVisibleModalSaveFile(true)}>Сохранить</Button>
+        </>}
       </div>
-      {activeItems && <div className={styles.tabs}><Tabs defaultActiveKey="0">
+      <div className={styles.container}>
+        <div>
+          {file && file.data.map((item: Element, i: number) => {
+            return <div key={i}>
+              <div className={styles.elementName} onClick={(evt: any) => showItems(evt, item.characters)}>{item.position}{item.characters.map((item: any, i: number) => {
+                keys = Object.keys(activeItem)
+                values = Object.values(activeItem)
+                return <div key={item["имя"]} className={item["имя"] === activeItem["имя"] ? styles.item : styles.hidden} style={item["имя"] === activeItem["имя"] ? { 'borderBottom': '1px solid black' } : { 'border': 'none' }} onClick={() => showTableItem(item)}>{item["имя"]}</div>
+              })}</div></div>
+          })}
+        </div>
+        {activeItems && <div className={styles.tabs}><Tabs className={styles.tabs} defaultActiveKey="0">
           {keys.map((tab: string, i: number) => {
-            return <TabPane className={styles.tab} tab={tab} key={i}>
-              {Array.isArray(values[i]) ? values[i].map((value: any, key: number) => {
+            return <TabPane className={styles.tab} tab={tab !== "id" && tab} key={i}>
+              {Array.isArray(values[i]) ? values[i].map((value: Skill, key: number) => {
                 return <div className={styles.wrap} key={key}>
                   <div className={styles.name}>{value.name}</div>
                   <div className={styles.about}>{value.about}</div>
@@ -79,10 +145,26 @@ const Main: React.FC = (): JSX.Element => {
             </TabPane>
           })}
         </Tabs></div>
-      }
-
-    </div>
+        }
+      </div>
+      <ModalSaveFile
+        isVisible={isVisibleModalSaveFile}
+        handleCancel={closeModal}
+        handleSubmit={handleSaveFile}
+        title="Укажите название сохраняемого файла"
+        form={formSaveFile} />
+      <ModalEditFile
+        isVisible={isVisibleModalEditFile}
+        handleCancel={closeModal}
+        handleSubmit={handleEditFile}
+        title="Редактирование блока"
+        form={formEditFile} />
+    </>
   );
 }
 
-export default Main;
+export default connect((state: AppState) => {
+  return {
+    file: state.file
+  };
+})(Main);
